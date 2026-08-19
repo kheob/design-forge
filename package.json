@@ -1,0 +1,57 @@
+{
+  "name": "design-forge",
+  "version": "0.1.0",
+  "description": "Design a Bulma-based design system in your browser, then hand it to an LLM. Runs locally, writes straight into your project.",
+  "keywords": [
+    "design-system",
+    "bulma",
+    "css",
+    "theming",
+    "design-tokens",
+    "llm",
+    "ai"
+  ],
+  "license": "MIT",
+  "author": "Bai Chan Kheo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kheob/design-forge.git"
+  },
+  "homepage": "https://github.com/kheob/design-forge#readme",
+  "bugs": {
+    "url": "https://github.com/kheob/design-forge/issues"
+  },
+  "type": "module",
+  "bin": {
+    "design-forge": "bin/design-forge.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @design-forge/studio",
+    "build": "npm run build:studio && npm run build:bulma && npm run build:cli",
+    "build:studio": "vite build packages/studio",
+    "build:bulma": "node scripts/copy-bulma.mjs",
+    "build:cli": "tsup",
+    "start": "node bin/design-forge.js",
+    "typecheck": "tsc -p packages/core --noEmit && tsc -p packages/cli --noEmit && tsc -p packages/studio --noEmit",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "bulma": "^1.0.4",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1"
+  }
+}

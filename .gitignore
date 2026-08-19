@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.tgz
+*.local
+.DS_Store
+
+# Generated when the tool is run from inside this repo
+design-forge.json
+design-system/
