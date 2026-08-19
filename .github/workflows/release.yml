@@ -96,8 +96,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
           git commit -m "chore(release): ${{ steps.version.outputs.version }} [skip ci]"
-          git tag "${{ steps.version.outputs.version }}"
-          git push --follow-tags
+          # -a for an annotated tag. `git push --follow-tags` silently skips lightweight
+          # tags, which once pushed the commit but not the tag and left the release step
+          # pointing at a ref that did not exist. Both refs are pushed explicitly below so
+          # a missing tag fails loudly instead of passing quietly.
+          git tag -a "${{ steps.version.outputs.version }}" -m "${{ steps.version.outputs.version }}"
+          git push origin HEAD:main
+          git push origin "${{ steps.version.outputs.version }}"
 
       # prepack rebuilds dist/, so the published tarball can never be stale.
       - name: Publish
