@@ -1,6 +1,6 @@
 {
   "name": "@kheob/design-forge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Design a Bulma-based design system in your browser, then hand it to an LLM. Runs locally, writes straight into your project.",
   "keywords": [
     "design-system",
