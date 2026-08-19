@@ -98,6 +98,26 @@ packages/
   cli/      node:http server, project detection, commands.
 ```
 
+`npm run smoke` packs the real tarball, installs it into a throwaway project and drives the
+CLI from there. Typechecking proves the source compiles; this proves the thing people
+actually install runs.
+
+## Releasing
+
+Publishing is gated on a tag, never on a push to `main`:
+
+```bash
+npm version patch        # or minor / major — commits and tags
+git push --follow-tags
+```
+
+The tag triggers a workflow that typechecks, builds, runs the smoke test, verifies the tag
+matches `package.json` and that the version is unpublished, then publishes to npm with
+provenance and opens a GitHub release. Pushing to `main` alone never publishes anything.
+
+Requires an npm granular access token with **bypass 2FA**, stored as the `NPM_TOKEN` repo
+secret.
+
 `npm run dev` mounts the CLI's real API handler as Vite middleware rather than proxying to a
 second process, so developing the studio exercises the code that actually ships.
 

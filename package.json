@@ -47,6 +47,7 @@
     "build:cli": "tsup",
     "start": "node bin/design-forge.js",
     "typecheck": "tsc -p packages/core --noEmit && tsc -p packages/cli --noEmit && tsc -p packages/studio --noEmit",
+    "smoke": "node scripts/smoke.mjs",
     "prepack": "npm run build"
   },
   "devDependencies": {

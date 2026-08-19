@@ -1,0 +1,72 @@
+name: Release
+
+# Publishing is gated on a tag, not a push to main. Merging is cheap and frequent;
+# releasing is deliberate and irreversible, so the two need different triggers.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  # Same typecheck / build / smoke test CI runs on every push. A tag must clear the
+  # identical bar before anything reaches the registry.
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      # write, not read — the final step creates the GitHub release.
+      contents: write
+      # Required for npm provenance — publishes a signed attestation linking the tarball
+      # to this workflow run and commit, shown as a "Provenance" badge on npm.
+      # Free for public repos; drop --provenance below if the repo is private.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      # The failure mode this prevents: tagging v0.2.0 while package.json still says 0.1.0,
+      # and publishing the wrong version under a tag that claims otherwise.
+      - name: Tag must match package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag v$TAG does not match package.json version $PKG."
+            echo "Bump the version, commit, then re-tag."
+            exit 1
+          fi
+          echo "Releasing $PKG"
+
+      # Catches a re-tag of an already-published version before npm rejects it, with a
+      # message that says what to do about it.
+      - name: Version must be unpublished
+        run: |
+          PKG="$(node -p "require('./package.json').version")"
+          NAME="$(node -p "require('./package.json').name")"
+          if npm view "$NAME@$PKG" version > /dev/null 2>&1; then
+            echo "::error::$NAME@$PKG is already published. Versions cannot be reused."
+            exit 1
+          fi
+
+      # prepack rebuilds dist/, so the published tarball can never be stale.
+      - name: Publish
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes

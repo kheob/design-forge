@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Lets the release workflow reuse this exact job instead of duplicating the steps.
+  workflow_call:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      # Packs the real tarball, installs it into a throwaway project, and drives the CLI.
+      # This is the check that catches "compiles fine, broken once installed" bugs.
+      - name: Smoke test the packaged artifact
+        run: npm run smoke
