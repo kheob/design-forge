@@ -7,8 +7,8 @@ on:
     tags: ['v*']
 
 jobs:
-  # Same typecheck / build / smoke test CI runs on every push. A tag must clear the
-  # identical bar before anything reaches the registry.
+  # Same typecheck / build / smoke test CI runs on every push, across the supported Node
+  # range. A tag must clear the identical bar before anything reaches the registry.
   verify:
     uses: ./.github/workflows/ci.yml
 
@@ -18,18 +18,27 @@ jobs:
     permissions:
       # write, not read — the final step creates the GitHub release.
       contents: write
-      # Required for npm provenance — publishes a signed attestation linking the tarball
-      # to this workflow run and commit, shown as a "Provenance" badge on npm.
-      # Free for public repos; drop --provenance below if the repo is private.
+      # The only credential this workflow uses. npm Trusted Publishing exchanges this
+      # short-lived OIDC token for publish rights, so there is no NPM_TOKEN secret to
+      # store, leak or rotate. Provenance attestations are generated automatically.
       id-token: write
     steps:
       - uses: actions/checkout@v4
 
+      # Node 22.14+ is a hard requirement for trusted publishing. The package itself still
+      # supports Node 20 — that floor is exercised by the CI matrix, not here.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org
+
+      # Node 22 bundles npm 10.x; trusted publishing needs 11.5.1 or later. Pinning the
+      # major keeps this from silently regressing if the bundled version changes.
+      - name: Upgrade npm for trusted publishing
+        run: |
+          npm install -g npm@^11.5.1
+          echo "npm $(npm --version) / node $(node --version)"
 
       - run: npm ci
 
@@ -57,11 +66,10 @@ jobs:
             exit 1
           fi
 
+      # No NODE_AUTH_TOKEN: authentication is the OIDC token from id-token: write.
       # prepack rebuilds dist/, so the published tarball can never be stale.
       - name: Publish
-        run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
 
       - name: Create GitHub release
         env:

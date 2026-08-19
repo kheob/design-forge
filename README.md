@@ -112,11 +112,15 @@ git push --follow-tags
 ```
 
 The tag triggers a workflow that typechecks, builds, runs the smoke test, verifies the tag
-matches `package.json` and that the version is unpublished, then publishes to npm with
-provenance and opens a GitHub release. Pushing to `main` alone never publishes anything.
+matches `package.json` and that the version is unpublished, then publishes and opens a
+GitHub release. Pushing to `main` alone never publishes anything.
 
-Requires an npm granular access token with **bypass 2FA**, stored as the `NPM_TOKEN` repo
-secret.
+Authentication is [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers) — the
+workflow exchanges a short-lived OIDC token for publish rights, so **there is no npm token
+stored anywhere**. Provenance attestations are generated automatically.
+
+One-time setup on npm: package **Settings → Trusted Publisher**, GitHub Actions, org `kheob`,
+repository `design-forge`, workflow `release.yml`.
 
 `npm run dev` mounts the CLI's real API handler as Vite middleware rather than proxying to a
 second process, so developing the studio exercises the code that actually ships.
