@@ -2,7 +2,7 @@
  * The local server.
  *
  * Deliberately `node:http` and nothing else. This package ships with zero runtime
- * dependencies so that `npx design-forge` fetches one tarball and starts immediately; a
+ * dependencies so that `npx @kheob/design-forge` fetches one tarball and starts immediately; a
  * framework would buy routing sugar for six routes at the cost of an install tree on every
  * cold run.
  *

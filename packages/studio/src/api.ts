@@ -1,7 +1,7 @@
 /**
  * Talking to the local CLI server.
  *
- * The studio normally runs behind `npx design-forge`, which gives it filesystem access: the
+ * The studio normally runs behind `npx @kheob/design-forge`, which gives it filesystem access: the
  * theme is a real file in the user's project and Export writes the bundle straight in. But
  * the built assets are just static files, so someone can serve them without the CLI. Rather
  * than error in that case, the studio probes once at boot and degrades to browser-local

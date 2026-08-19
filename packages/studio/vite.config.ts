@@ -10,7 +10,7 @@ import { handleApi } from '../cli/src/server.js';
  * Mount the CLI's API into the Vite dev server.
  *
  * The alternative — proxying to a second process — means `npm run dev` exercises different
- * plumbing from `npx design-forge`, and the two drift. Mounting the real handler as
+ * plumbing from `npx @kheob/design-forge`, and the two drift. Mounting the real handler as
  * middleware keeps one implementation for both.
  *
  * Bulma is served from node_modules here; in a built package it sits next to the studio

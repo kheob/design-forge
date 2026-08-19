@@ -10,6 +10,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { applyPreset, PRESETS } from '../../core/src/index.js';
 import { detectProject } from './detect.js';
 import { openBrowser } from './open.js';
@@ -53,10 +54,10 @@ function usage(): void {
   console.log(`
 ${bold('design-forge')} — design a Bulma-based system, hand it to an LLM
 
-  ${bold('npx design-forge')}                 start the studio in this project
-  ${bold('npx design-forge export')}          write the bundle without opening the studio
-  ${bold('npx design-forge init')}            create a starter design-forge.json
-  ${bold('npx design-forge presets')}         list the starting points
+  ${bold('npx @kheob/design-forge')}          start the studio in this project
+  ${bold('npx @kheob/design-forge export')}   write the bundle without opening the studio
+  ${bold('npx @kheob/design-forge init')}     create a starter design-forge.json
+  ${bold('npx @kheob/design-forge presets')}  list the starting points
 
 ${dim('Options')}
   -o, --out <dir>     override where the bundle is written
@@ -66,13 +67,17 @@ ${dim('Options')}
 `);
 }
 
+const PKG_NAME = '@kheob/design-forge';
+
 function pkgVersion(): string {
+  // fileURLToPath, not URL.pathname — on Windows the latter yields "/C:/..." with a leading
+  // slash, which never resolves and silently reports 0.0.0.
+  const here = path.dirname(fileURLToPath(import.meta.url));
   // package.json sits two levels above dist/cli/index.js in the published layout.
   for (const rel of ['../../package.json', '../package.json']) {
     try {
-      const file = path.resolve(path.dirname(new URL(import.meta.url).pathname), rel);
-      const json = JSON.parse(fs.readFileSync(file, 'utf8'));
-      if (json.name === 'design-forge') return json.version as string;
+      const json = JSON.parse(fs.readFileSync(path.resolve(here, rel), 'utf8'));
+      if (json.name === PKG_NAME) return json.version as string;
     } catch {
       // Try the next candidate.
     }
@@ -154,7 +159,7 @@ function commandInit(args: Args): void {
   const theme = applyPreset(presetId, ctx.name);
   writeTheme(ctx, theme);
   console.log(`\n  ${green('Created')} design-forge.json ${dim(`(preset: ${presetId})`)}`);
-  console.log(`  ${dim('Run')} npx design-forge ${dim('to start designing.')}\n`);
+  console.log(`  ${dim('Run')} npx @kheob/design-forge ${dim('to start designing.')}\n`);
 }
 
 function commandPresets(): void {

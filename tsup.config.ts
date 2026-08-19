@@ -6,7 +6,7 @@ import { defineConfig } from 'tsup';
  * `noExternal` inlines @design-forge/core rather than publishing it separately: one package,
  * one version, and nothing to resolve at install time. Combined with Bulma shipping as a
  * static asset, the published package has no runtime dependencies at all — which is what
- * makes `npx design-forge` start immediately on a cold run.
+ * makes `npx @kheob/design-forge` start immediately on a cold run.
  */
 export default defineConfig({
   entry: { index: 'packages/cli/src/index.ts' },

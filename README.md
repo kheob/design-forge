@@ -4,7 +4,7 @@ Decide what your app should look like **before** you ask an LLM to build it.
 
 ```bash
 cd my-app
-npx design-forge
+npx @kheob/design-forge
 ```
 
 Tune the design in your browser, hit Export, and the whole system lands in your project as
@@ -14,7 +14,7 @@ plain CSS plus a document your coding agent can follow. No account, no API key, 
 
 ## The loop
 
-1. **`npx design-forge`** in your project. It detects your framework and opens the studio.
+1. **`npx @kheob/design-forge`** in your project. It detects your framework and opens the studio.
 2. **Design.** Start from a preset, then tune colours, radius, typography, density, elevation,
    motion — globally, or per component. A live preview shows all 53 components and a realistic
    page as you go.
@@ -50,10 +50,10 @@ identically and inherit dark mode for free.
 ## Commands
 
 ```bash
-npx design-forge                      # start the studio
-npx design-forge export               # rebuild the bundle from design-forge.json
-npx design-forge init --preset soft   # start from a preset without opening the studio
-npx design-forge presets              # bulma · corporate · playful · brutalist · soft · dense
+npx @kheob/design-forge                      # start the studio
+npx @kheob/design-forge export               # rebuild the bundle from design-forge.json
+npx @kheob/design-forge init --preset soft   # start from a preset without opening the studio
+npx @kheob/design-forge presets              # bulma · corporate · playful · brutalist · soft · dense
 ```
 
 Options: `--out <dir>`, `--port <n>`, `--no-open`.
@@ -84,7 +84,8 @@ stylesheets, in the exact order, that the export produces.
 ## Development
 
 ```bash
-git clone … && cd design-forge && npm install
+git clone https://github.com/kheob/design-forge.git
+cd design-forge && npm install
 npm run dev        # studio with HMR, API mounted into the Vite dev server
 npm run build      # dist/studio + dist/cli — what gets published
 npm run typecheck

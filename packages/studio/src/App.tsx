@@ -68,7 +68,7 @@ export default function App() {
   const runExport = async () => {
     if (!isConnected()) {
       downloadTheme(theme);
-      setStatus('Saved design-forge.json — run `npx design-forge export` to build the bundle');
+      setStatus('Saved design-forge.json — run `npx @kheob/design-forge export` to build the bundle');
       return;
     }
     setExporting(true);
@@ -140,7 +140,7 @@ export default function App() {
             {ctx.name} <span className="df-project-fw">{ctx.frameworkLabel}</span>
           </span>
         ) : (
-          <span className="df-project df-standalone" title="Run `npx design-forge` in your project to save and export to disk">
+          <span className="df-project df-standalone" title="Run `npx @kheob/design-forge` in your project to save and export to disk">
             standalone
           </span>
         )}
