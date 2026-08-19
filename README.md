@@ -1,5 +1,7 @@
 # Design Forge
 
+[![npm](https://img.shields.io/npm/v/@kheob/design-forge)](https://www.npmjs.com/package/@kheob/design-forge) [![CI](https://github.com/kheob/design-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/kheob/design-forge/actions/workflows/ci.yml)
+
 Decide what your app should look like **before** you ask an LLM to build it.
 
 ```bash
