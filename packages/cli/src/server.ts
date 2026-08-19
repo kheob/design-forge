@@ -15,6 +15,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import {
   ALL_COMPONENTS,
@@ -46,10 +47,22 @@ export function studioDir(): string {
  * Bulma ships as a static file next to the studio rather than as an npm dependency, so the
  * package stays dependency-free and the 662 kB never enters the JS bundle. The exporter takes
  * it as a parameter, so reading it here is all the wiring needed.
+ *
+ * Two locations, because there are two ways this code runs. Installed, it sits beside the
+ * built studio in dist/. Running from source (npm run dev) there is no dist/, so it falls
+ * back to the devDependency — without which dev exports quietly lost bulma.min.css and
+ * emitted a CDN link instead of a self-contained bundle.
  */
 export function readBulmaCss(): string | undefined {
-  const file = path.join(studioDir(), 'bulma.min.css');
-  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : undefined;
+  const packaged = path.join(studioDir(), 'bulma.min.css');
+  if (fs.existsSync(packaged)) return fs.readFileSync(packaged, 'utf8');
+  try {
+    const req = createRequire(import.meta.url);
+    return fs.readFileSync(req.resolve('bulma/css/bulma.min.css'), 'utf8');
+  } catch {
+    // Neither location: the caller falls back to a CDN link and says so.
+    return undefined;
+  }
 }
 
 export function readTheme(ctx: ProjectContext): Theme {

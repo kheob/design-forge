@@ -140,6 +140,14 @@ try {
   const bulma = path.join(fixture, 'node_modules', ...pkg.name.split('/'), 'dist', 'studio', 'bulma.min.css');
   check('bulma.min.css ships with the package', fs.existsSync(bulma));
 
+  // The export degrades to a CDN link when Bulma can't be located, which once shipped a
+  // silently incomplete bundle. Assert the self-contained form rather than the fallback.
+  check('export bundles bulma rather than linking a CDN', written.includes('bulma.min.css'));
+  if (fs.existsSync(path.join(outDir, 'snippets.html'))) {
+    const html = fs.readFileSync(path.join(outDir, 'snippets.html'), 'utf8');
+    check('snippets.html links bulma locally', html.includes('./bulma.min.css') && !html.includes('cdn.jsdelivr.net'));
+  }
+
   // 8. The theme file lands at the project root so it can be committed.
   check('theme saved to project root', fs.existsSync(path.join(fixture, 'design-forge.json')));
 } finally {

@@ -24,8 +24,12 @@ function designForgeDevServer(): Plugin {
     name: 'design-forge-dev-server',
     apply: 'serve',
     configureServer(server) {
-      // The theme and export target follow wherever the dev server was launched from.
-      const ctx = detectProject(process.cwd());
+      // INIT_CWD, not process.cwd(). npm runs Vite with its cwd set to packages/studio, so
+      // process.cwd() made the tool detect the *studio package* as the user's project and
+      // write the theme and the export bundle into the repo. INIT_CWD is the directory the
+      // npm command was actually invoked from, which is what someone running `npm run dev`
+      // means by "here".
+      const ctx = detectProject(process.env.INIT_CWD ?? process.cwd());
 
       server.middlewares.use((req, res, next) => {
         if (req.url?.split('?')[0] === '/bulma.min.css') {
