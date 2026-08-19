@@ -1,10 +1,9 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
-  # Lets the release workflow reuse this exact job instead of duplicating the steps.
+  # Merges to main run this through the release workflow, which calls it here rather than
+  # duplicating the steps. No push trigger, or every merge would run the whole thing twice.
   workflow_call:
 
 jobs:

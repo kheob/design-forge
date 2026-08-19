@@ -104,23 +104,33 @@ actually install runs.
 
 ## Releasing
 
-Publishing is gated on a tag, never on a push to `main`:
+`main` is what's released. Merge a PR and it ships — the workflow bumps the version,
+publishes to npm, tags the commit and opens a GitHub release. Don't run `npm version`
+yourself; the workflow owns the version number.
 
-```bash
-npm version patch        # or minor / major — commits and tags
-git push --follow-tags
-```
+Bump size comes from the merge commit message, defaulting to patch so nothing special is
+needed for an ordinary change:
 
-The tag triggers a workflow that typechecks, builds, runs the smoke test, verifies the tag
-matches `package.json` and that the version is unpublished, then publishes and opens a
-GitHub release. Pushing to `main` alone never publishes anything.
+| Commit message | Bump |
+| --- | --- |
+| anything | patch |
+| `feat: …` | minor |
+| `feat!: …` or `BREAKING CHANGE` in the body | major |
+| contains `[skip release]` | none — nothing publishes |
 
-Authentication is [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers) — the
-workflow exchanges a short-lived OIDC token for publish rights, so **there is no npm token
-stored anywhere**. Provenance attestations are generated automatically.
+Use `[skip release]` for docs and CI-only merges, or the version will churn on cosmetic
+changes.
 
-One-time setup on npm: package **Settings → Trusted Publisher**, GitHub Actions, org `kheob`,
-repository `design-forge`, workflow `release.yml`.
+Authentication is [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers): the
+workflow exchanges a short-lived OIDC token for publish rights, so **no npm token is stored
+anywhere**. Provenance attestations are generated automatically.
+
+**One-time npm setup** — package **Settings → Trusted Publisher**, GitHub Actions, org
+`kheob`, repository `design-forge`, workflow `release.yml`.
+
+**Branch protection.** The workflow pushes its version-bump commit directly to `main`. If
+you protect the branch, give `github-actions[bot]` a bypass, or the release fails at the
+push step — deliberately before publishing, so npm never gets ahead of the repo.
 
 `npm run dev` mounts the CLI's real API handler as Vite middleware rather than proxying to a
 second process, so developing the studio exercises the code that actually ships.

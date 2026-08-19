@@ -1,31 +1,42 @@
 name: Release
 
-# Publishing is gated on a tag, not a push to main. Merging is cheap and frequent;
-# releasing is deliberate and irreversible, so the two need different triggers.
+# main is what's released. Every merge bumps the version and publishes, so there is no
+# separate tagging step — the tag is created here, after the fact, to record what shipped.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+
+# Two merges landing close together must not race to bump the same version. Queue, never
+# cancel: a cancelled run could leave main bumped but nothing published.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  # Same typecheck / build / smoke test CI runs on every push, across the supported Node
-  # range. A tag must clear the identical bar before anything reaches the registry.
+  # The same typecheck / build / smoke test that runs on every pull request, across the
+  # supported Node range. Nothing publishes unless this passes.
   verify:
     uses: ./.github/workflows/ci.yml
 
-  publish:
+  release:
     needs: verify
     runs-on: ubuntu-latest
+    # Escape hatch for merges that shouldn't ship — docs, CI tweaks, anything cosmetic.
+    if: "!contains(github.event.head_commit.message, '[skip release]')"
     permissions:
-      # write, not read — the final step creates the GitHub release.
+      # Pushes the version-bump commit and tag, and creates the GitHub release.
       contents: write
-      # The only credential this workflow uses. npm Trusted Publishing exchanges this
-      # short-lived OIDC token for publish rights, so there is no NPM_TOKEN secret to
-      # store, leak or rotate. Provenance attestations are generated automatically.
+      # The only credential: npm Trusted Publishing exchanges this short-lived OIDC token
+      # for publish rights. No NPM_TOKEN is stored anywhere. Provenance is automatic.
       id-token: write
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so tagging and pushing don't hit shallow-clone restrictions.
+          fetch-depth: 0
 
-      # Node 22.14+ is a hard requirement for trusted publishing. The package itself still
+      # Node 22.14+ is a hard requirement for trusted publishing. The package still
       # supports Node 20 — that floor is exercised by the CI matrix, not here.
       - uses: actions/setup-node@v4
         with:
@@ -33,8 +44,7 @@ jobs:
           cache: npm
           registry-url: https://registry.npmjs.org
 
-      # Node 22 bundles npm 10.x; trusted publishing needs 11.5.1 or later. Pinning the
-      # major keeps this from silently regressing if the bundled version changes.
+      # Node 22 bundles npm 10.x; trusted publishing needs 11.5.1 or later.
       - name: Upgrade npm for trusted publishing
         run: |
           npm install -g npm@^11.5.1
@@ -42,31 +52,53 @@ jobs:
 
       - run: npm ci
 
-      # The failure mode this prevents: tagging v0.2.0 while package.json still says 0.1.0,
-      # and publishing the wrong version under a tag that claims otherwise.
-      - name: Tag must match package.json
+      # Patch by default, so a merge never needs special syntax to ship. Conventional
+      # prefixes opt into a larger bump when the change warrants one.
+      - name: Decide the bump
+        id: bump
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          PKG="$(node -p "require('./package.json').version")"
-          if [ "$TAG" != "$PKG" ]; then
-            echo "::error::Tag v$TAG does not match package.json version $PKG."
-            echo "Bump the version, commit, then re-tag."
-            exit 1
+          MSG="$(git log -1 --pretty=%B)"
+          if printf '%s' "$MSG" | grep -qE '(^[a-z]+(\(.+\))?!:|BREAKING[ -]CHANGE)'; then
+            TYPE=major
+          elif printf '%s' "$MSG" | grep -qE '^feat(\(.+\))?:'; then
+            TYPE=minor
+          else
+            TYPE=patch
           fi
-          echo "Releasing $PKG"
+          echo "type=$TYPE" >> "$GITHUB_OUTPUT"
+          echo "Bump: $TYPE"
 
-      # Catches a re-tag of an already-published version before npm rejects it, with a
-      # message that says what to do about it.
+      - name: Bump version
+        id: version
+        run: |
+          # --no-workspaces: the packages/* versions are internal and never published.
+          VERSION="$(npm version "${{ steps.bump.outputs.type }}" --no-git-tag-version --no-workspaces)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "New version: $VERSION"
+
       - name: Version must be unpublished
         run: |
-          PKG="$(node -p "require('./package.json').version")"
           NAME="$(node -p "require('./package.json').name")"
+          PKG="$(node -p "require('./package.json').version")"
           if npm view "$NAME@$PKG" version > /dev/null 2>&1; then
             echo "::error::$NAME@$PKG is already published. Versions cannot be reused."
             exit 1
           fi
 
-      # No NODE_AUTH_TOKEN: authentication is the OIDC token from id-token: write.
+      # Push before publishing, deliberately. A blocked push (branch protection, for
+      # instance) then fails *before* anything irreversible reaches the registry. The
+      # reverse order would leave npm ahead of main with no record of what shipped.
+      # [skip ci] is belt-and-braces: pushes made with GITHUB_TOKEN don't retrigger
+      # workflows, so this commit cannot loop back into another release.
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore(release): ${{ steps.version.outputs.version }} [skip ci]"
+          git tag "${{ steps.version.outputs.version }}"
+          git push --follow-tags
+
       # prepack rebuilds dist/, so the published tarball can never be stale.
       - name: Publish
         run: npm publish
@@ -75,6 +107,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
+          gh release create "${{ steps.version.outputs.version }}" \
+            --title "${{ steps.version.outputs.version }}" \
             --generate-notes
